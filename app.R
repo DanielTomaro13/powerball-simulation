@@ -202,7 +202,8 @@ play_powerball <- function(user_numbers, times = 1) {
 }
 
 # Run the simulation and store the results
-results <- play_powerball(c(1, 2, 23, 13, 15, 33, 27, 12), times = 10000)
+user_numbers <- c(1,2,3,4,5,6,7,8)
+results <- play_powerball(user_numbers, times = 100)
 
 # Access the different dataframes
 stats <- results$stats
@@ -211,7 +212,7 @@ powerball_freq <- results$powerball_frequency
 all_draws <- results$draws
 
 # Plot of frequent main numbers
-barplot(
+main_num_plot <- barplot(
   main_numbers_freq$freq,
   names.arg = main_numbers_freq$number,
   main = "Frequency of Main Numbers",
@@ -222,7 +223,7 @@ barplot(
 )
 
 # Plot of frequent powerball
-barplot(
+powerball_plot <- barplot(
   powerball_freq$freq,
   names.arg = powerball_freq$number,
   main = "Frequency of Powerballs",
@@ -233,7 +234,7 @@ barplot(
 )
 
 # Plot of wins
-stats <- stats[stats$percentage != "losses", ]
+wins_plot <- stats <- stats[stats$percentage != "losses", ]
 barplot(
   stats$percentage, 
   names.arg = stats$division, 
@@ -246,42 +247,161 @@ barplot(
 
 # Making of the app
 
+# Load libraries
+library(shiny)
+
+
+# Define UI
 ui <- fluidPage(
-
-    # Application title
-    titlePanel("Powerball Simulation"),
-
-    # Sidebar with a slider input for number of bins 
-    sidebarLayout(
-        sidebarPanel(
-            sliderInput("bins",
-                        "Number of bins:",
-                        min = 1,
-                        max = 50,
-                        value = 30)
-        ),
-
-        # Show a plot of the generated distribution
-        mainPanel(
-           plotOutput("distPlot")
-        )
+  titlePanel("Powerball Simulator: Good Luck!"),
+  
+  sidebarLayout(
+    sidebarPanel(
+      h4("Enter Your Numbers:"),
+      
+      # Input for 7 main numbers
+      numericInput("num1", "Number 1", value = 1, min = 1, max = 35),
+      numericInput("num2", "Number 2", value = 2, min = 1, max = 35),
+      numericInput("num3", "Number 3", value = 3, min = 1, max = 35),
+      numericInput("num4", "Number 4", value = 4, min = 1, max = 35),
+      numericInput("num5", "Number 5", value = 5, min = 1, max = 35),
+      numericInput("num6", "Number 6", value = 6, min = 1, max = 35),
+      numericInput("num7", "Number 7", value = 7, min = 1, max = 35),
+      
+      # Input for Powerball number
+      numericInput("num8", "Powerball", value = 1, min = 1, max = 20),
+      
+      # Number of simulations to rin
+      numericInput("simulations", "Number of Simulations", value = 100, min = 1, max = 1000000),
+      
+      actionButton("runSim", "Run Simulation")
+    ),
+    
+    mainPanel(
+      h3("Results"),
+      textOutput("userNumbersOutput"),
+      verbatimTextOutput("simulationSummary"),
+      
+      tabsetPanel(
+        tabPanel("Number Frequency", plotOutput("mainNumberPlot")),
+        tabPanel("Powerball Frequency", plotOutput("powerballPlot")),
+        tabPanel("Winning Frequency", plotOutput("winsPlot"))
+      )
     )
+  )
 )
 
-# Define server logic required to draw a histogram
-server <- function(input, output) {
+# Define Server
+server <- function(input, output, session) {
+  
+  # Reactive value to store the winning numbers
+  simulationResults <- reactiveVal(NULL)
+  
+  observeEvent(input$runSim, {
+    user_numbers <- c(input$num1, input$num2, input$num3, input$num4,
+                      input$num5, input$num6, input$num7, input$num8)
+    
+    # Check for duplicates
+    if(any(duplicated(user_numbers[1:7]))) {
+      showNotification("First Seven Numbers Must Be Unique!", type = 'error')
+      return()
+    }
+    
+    # Run the Powerball simulation
+    results <- play_powerball(user_numbers, times = input$simulations)
+    
+    # Store the simulation results
+    simulationResults(results)
+  })
+  
+   
+  # Display User Numbers
+  output$userNumbersOutput <- renderText({
+    req(input$runSim)
+    user_numbers <- c(input$num1, input$num2, input$num3, input$num4,
+                      input$num5, input$num6, input$num7, input$num8)
+    paste("Your Numbers:", paste(user_numbers[1:7], collapse = ", "),
+          "| Powerball:", user_numbers[8])
+  })
+   
 
-    output$distPlot <- renderPlot({
-        # generate bins based on input$bins from ui.R
-        x    <- faithful[, 2]
-        bins <- seq(min(x), max(x), length.out = input$bins + 1)
-
-        # draw the histogram with the specified number of bins
-        hist(x, breaks = bins, col = 'darkgray', border = 'white',
-             xlab = 'Waiting time to next eruption (in mins)',
-             main = 'Histogram of waiting times')
+  # Display simulation summary
+    output$simulationSummary <- renderPrint({
+    req(simulationResults())
+    results <- simulationResults()
+      results_summary <- paste(
+        "Simulation Summary:",
+        paste("Total Drawings:", input$simulations),
+        paste("Jackpots:", results$stats$wins[1], "(", format(results$stats$percentage[1], digits=4), "%)"),
+        paste("Division 2:", results$stats$wins[2], "(", format(results$stats$percentage[2], digits=4), "%)"),
+        paste("Division 3:", results$stats$wins[3], "(", format(results$stats$percentage[3], digits=4), "%)"),
+        paste("Division 4:", results$stats$wins[4], "(", format(results$stats$percentage[4], digits=4), "%)"),
+        paste("Division 5:", results$stats$wins[5], "(", format(results$stats$percentage[5], digits=4), "%)"),
+        paste("Division 6:", results$stats$wins[6], "(", format(results$stats$percentage[6], digits=4), "%)"),
+        paste("Division 7:", results$stats$wins[7], "(", format(results$stats$percentage[7], digits=4), "%)"),
+        paste("Division 8:", results$stats$wins[8], "(", format(results$stats$percentage[8], digits=4), "%)"),
+        paste("Division 9:", results$stats$wins[9], "(", format(results$stats$percentage[9], digits=4), "%)"),
+        paste("Losses:", results$stats$wins[10], "(", format(results$stats$percentage[10], digits=4), "%)"),
+        sep = "\n"
+      )
+      cat(results_summary)
     })
-}
-
-# Run the application 
+    
+    # Generate frequency table for main numbers
+    output$mainNumberPlot <- renderPlot({
+      req(simulationResults())
+      
+      main_numbers_freq <- simulationResults()$main_numbers_frequency
+      
+      barplot(
+        main_numbers_freq$frequency,
+        names.arg = main_numbers_freq$number,
+        main = "Frequency of Main Numbers",
+        xlab = "Numbers",
+        ylab = "Frequency",
+        col = "darkmagenta",
+        border = "white"
+      )
+    })
+    
+    # Powerball frequency plot
+    output$powerballPlot <- renderPlot({
+      req(simulationResults())
+      
+      powerball_freq <- simulationResults()$powerball_frequency
+      
+      barplot(
+        powerball_freq$frequency,
+        names.arg = powerball_freq$number,
+        main = "Frequency of Powerballs",
+        xlab = "Numbers",
+        ylab = "Frequency",
+        col = "darkmagenta",
+        border = "white"
+      )
+    })
+    
+    # Wins plot - excluding losses for better visualization
+    output$winsPlot <- renderPlot({
+      req(simulationResults())
+      
+      stats <- simulationResults()$stats
+      # Exclude losses for better visualization
+      stats_filtered <- stats[1:9, ]
+      
+      barplot(
+        stats_filtered$percentage,
+        names.arg = stats_filtered$division,
+        main = "Winning Statistics",
+        xlab = "Division",
+        ylab = "Winning Percentage (%)",
+        col = "darkmagenta",
+        border = "white",
+        las = 2
+      )
+    })
+  }
+  
+# Run the app
 shinyApp(ui = ui, server = server)
+

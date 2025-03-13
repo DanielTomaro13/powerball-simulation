@@ -1,5 +1,1 @@
 # Should add prices to calculate money spent
-
-# Create graphs
-
-# Make app functional 
