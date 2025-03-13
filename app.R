@@ -202,7 +202,7 @@ play_powerball <- function(user_numbers, times = 1) {
 }
 
 # Run the simulation and store the results
-results <- play_powerball(c(1, 2, 23, 13, 15, 33, 27, 12), times = 1000)
+results <- play_powerball(c(1, 2, 23, 13, 15, 33, 27, 12), times = 10000)
 
 # Access the different dataframes
 stats <- results$stats
@@ -210,41 +210,46 @@ main_numbers_freq <- results$main_numbers_frequency
 powerball_freq <- results$powerball_frequency
 all_draws <- results$draws
 
+# Plot of frequent main numbers
+barplot(
+  main_numbers_freq$freq,
+  names.arg = main_numbers_freq$number,
+  main = "Frequency of Main Numbers",
+  xlab = "Numbers",
+  ylab = "Frequency",
+  col = "darkmagenta",
+  border = "white"
+)
 
+# Plot of frequent powerball
+barplot(
+  powerball_freq$freq,
+  names.arg = powerball_freq$number,
+  main = "Frequency of Powerballs",
+  xlab = "Numbers",
+  ylab = "Frequency",
+  col = "darkmagenta",
+  border = "white"
+)
 
+# Plot of wins
+stats <- stats[stats$percentage != "losses", ]
+barplot(
+  stats$percentage, 
+  names.arg = stats$division, 
+  main = "Winning Statistics", 
+  xlab = "Division", 
+  ylab = "Winning Percentage", 
+  col = "darkmagenta", 
+  border = "white"
+)
 
+# Making of the app
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Define UI for application that draws a histogram
 ui <- fluidPage(
 
     # Application title
-    titlePanel("Old Faithful Geyser Data"),
+    titlePanel("Powerball Simulation"),
 
     # Sidebar with a slider input for number of bins 
     sidebarLayout(
